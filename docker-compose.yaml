@@ -14,7 +14,7 @@ services:
     ports:
       - 80:8080
     volumes:
-      - ./app:/usr/share/nginx/html/app
+      - ./app:/usr/share/nginx/html/app:ro
 
   logging-api:
     image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
@@ -24,7 +24,7 @@ services:
     ports:
       - 4010:4010
     volumes:
-      - ./app/logging-api/specification:/app
+      - ./app/logging-api/specification:/app:ro
 
   products-api:
     image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
@@ -34,7 +34,7 @@ services:
     ports:
       - 4011:4010
     volumes:
-      - ./app/products-api/specification:/app
+      - ./app/products-api/specification:/app:ro
 
   invoicing-api:
     image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
@@ -44,7 +44,7 @@ services:
     ports:
       - 4012:4010
     volumes:
-      - ./app/invoicing-api/specification:/app
+      - ./app/invoicing-api/specification:/app:ro
 
   orders-api:
     image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
@@ -54,4 +54,4 @@ services:
     ports:
       - 4013:4010
     volumes:
-      - ./app/orders-api/specification:/app
+      - ./app/orders-api/specification:/app:ro
