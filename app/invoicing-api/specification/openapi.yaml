@@ -7,7 +7,7 @@ tags:
   - name: Organizacion
   - name: Facturas
 servers:
-  - url: '{schema}://{servername}:{port}/api/v1'
+  - url: '{schema}://{servername}:{port}'
     description: 'AOS Production server (uses live data)'
     variables:
       schema:
@@ -18,7 +18,7 @@ servers:
       servername:
         default: localhost
       port:
-        default: '80'
+        default: '4012'
 paths:
   /Organizacion:
     post:
