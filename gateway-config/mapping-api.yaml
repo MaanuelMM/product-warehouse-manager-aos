@@ -1,0 +1,31 @@
+#gateway-config/mapping-api.yaml
+---
+apiVersion: ambassador/v2
+kind: Mapping
+name: logging-api_mapping
+prefix: "/events"
+rewrite: ""
+service: logging-api:4010
+---
+apiVersion: ambassador/v2
+kind: Mapping
+name: products-api_mapping
+prefix: "/(Productos|Categorias).*"
+prefix_regex: true
+rewrite: ""
+service: products-api:4010
+---
+apiVersion: ambassador/v2
+kind: Mapping
+name: orders-api_mapping
+prefix: "/pedidos"
+rewrite: ""
+service: orders-api:4010
+---
+apiVersion: ambassador/v2
+kind: Mapping
+name: invoicing-api_mapping
+prefix: "/(Factura|Organizacion).*"
+prefix_regex: true
+rewrite: ""
+service: invoicing-api:4010

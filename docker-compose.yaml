@@ -1,57 +1,112 @@
-version: "3.7"
+version: "3.8"
 
 services:
-  swagger-ui:
-    image: swaggerapi/swagger-ui # latest
-    container_name: swagger-ui
+  traefik:
+    image: traefik:v2.2.1
+    restart: on-failure
     depends_on:
-      - logging-api
-      - products-api
-      - invoicing-api
-      - orders-api
+      - swagger-ui
+      - api-gateway
+    labels:
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      - "traefik.docker.network=external-proxy"
+    ports:
+      - "80:80"
+      - "443:443"
+      #- "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
+      - ./traefik/log:/var/log:rw
+    networks:
+      - external-proxy
+      - internal-proxy
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v3.25.2
+    restart: on-failure
+    depends_on:
+      - api-gateway
+    labels:
+      - "traefik.http.routers.swagger-ui.rule=Host(`localhost`) || Host(`swagger.localhost`)"
+      - "traefik.http.services.swagger-ui.loadbalancer.server.port=8080"
     environment:
       - URLS=[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]
-    ports:
-      - 80:8080
     volumes:
       - ./app:/usr/share/nginx/html/app:ro
+    networks:
+      - internal-proxy
 
-  logging-api:
-    image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
-    init: true
-    command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
-    restart: on-failure # incredibly unreliable
-    ports:
-      - 4010:4010
+  api-gateway:
+    image: quay.io/datawire/ambassador:0.86.1 # another version problem...
+    command: --port 8080
+    restart: on-failure
+    depends_on:
+      - invoicing-api
+      - logging-api
+      - orders-api
+      - products-api
+    labels: # https://medium.com/@utnas/microservices-architecture-using-traefik-reverse-proxy-and-ambassador-as-gateway-606a77d8f7c7
+      - "traefik.http.routers.api-gateway.rule=Host(`api.localhost`)"
+      - "traefik.http.services.api-gateway.loadbalancer.server.port=8080"
+    environment:
+      - AMBASSADOR_NO_KUBEWATCH=no_kubewatch
     volumes:
-      - ./app/logging-api/specification:/app:ro
-
-  products-api:
-    image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
-    init: true
-    command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
-    restart: on-failure # incredibly unreliable
-    ports:
-      - 4011:4010
-    volumes:
-      - ./app/products-api/specification:/app:ro
+      - ./gateway-config:/ambassador/ambassador-config:ro
+    networks:
+      - internal-proxy
 
   invoicing-api:
-    image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
+    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
     init: true
     command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
     restart: on-failure # incredibly unreliable
-    ports:
-      - 4012:4010
+    labels:
+      - "traefik.enable=false"
     volumes:
       - ./app/invoicing-api/specification:/app:ro
+    networks:
+      - internal-proxy
+
+  logging-api:
+    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
+    init: true
+    command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
+    restart: on-failure # incredibly unreliable
+    labels:
+      - "traefik.enable=false"
+    volumes:
+      - ./app/logging-api/specification:/app:ro
+    networks:
+      - internal-proxy
 
   orders-api:
-    image: maanuelmm/prism # custom image to avoid two bugs in two different versions.
+    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
     init: true
     command: mock -d -h 0.0.0.0 "/app/openapi.json"
     restart: on-failure # incredibly unreliable
-    ports:
-      - 4013:4010
+    labels:
+      - "traefik.enable=false"
     volumes:
       - ./app/orders-api/specification:/app:ro
+    networks:
+      - internal-proxy
+
+  products-api:
+    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
+    init: true
+    command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
+    restart: on-failure # incredibly unreliable
+    labels:
+      - "traefik.enable=false"
+    volumes:
+      - ./app/products-api/specification:/app:ro
+    networks:
+      - internal-proxy
+
+networks:
+  external-proxy:
+    internal: false
+  internal-proxy:
+    internal: true

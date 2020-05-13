@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Ejercicio de especificación en `OpenAPI`
 servers:
-  - url: '{schema}://{servername}:{port}/'
+  - url: '{schema}://{servername}:{port}'
     description: 'AOS Server Practica 1'
     variables:
       schema:
@@ -13,9 +13,9 @@ servers:
           - https
         default: http
       servername:
-        default: localhost
+        default: api.localhost
       port:
-        default: '4011'
+        default: '80'
 tags:
   - name: Productos
     description: Gestión de Productos
@@ -331,7 +331,7 @@ components:
             body:
               $ref: '#/components/schemas/Producto/example'
             link:
-              'http://localhost:4010//productos/producto1'
+              'http://api.localhost:4010//productos/producto1'
     respuesta201-categoria:
       description: Insercion correcta
       content:
@@ -351,7 +351,7 @@ components:
             body:
               $ref: '#/components/schemas/Categoria/example'
             link:
-              'http://localhost:4010//productos/producto1'
+              'http://api.localhost:4010//productos/producto1'
     respuesta409:
        description:  Id existente
        content:    

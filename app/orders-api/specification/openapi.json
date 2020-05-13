@@ -20,10 +20,10 @@
             "default": "http"
           },
           "servername": {
-            "default": "localhost"
+            "default": "api.localhost"
           },
           "port": {
-            "default": "4013"
+            "default": "80"
           }
         }
       }

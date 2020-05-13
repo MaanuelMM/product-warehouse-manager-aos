@@ -20,9 +20,9 @@ servers:
           - https
         default: http
       servername:
-        default: localhost
+        default: api.localhost
       port:
-        default: "4010"
+        default: "80"
 tags:
   - name: Events
     description: "Endpoints to manipulate software events"

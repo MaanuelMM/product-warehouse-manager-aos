@@ -16,9 +16,9 @@ servers:
           - https
         default: http
       servername:
-        default: localhost
+        default: api.localhost
       port:
-        default: '4012'
+        default: '80'
 paths:
   /Organizacion:
     post:
