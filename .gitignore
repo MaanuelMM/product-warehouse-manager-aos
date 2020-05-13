@@ -1,2 +1,5 @@
 # vscode-workspace settings
 .vscode/
+
+# traefik-logs
+traefik/log/
