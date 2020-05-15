@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.network/external-proxy: "true"
+    io.kompose.network/internal-proxy: "true"
+    io.kompose.service: traefik
+  name: traefik
+spec:
+  containers:
+  - image: traefik:v2.2.1
+    name: traefik
+    ports:
+    - containerPort: 80
+    - containerPort: 443
+    resources: {}
+    volumeMounts:
+    - mountPath: /var/run/docker.sock
+      name: traefik-claim0
+      readOnly: true
+    - mountPath: /etc/traefik/traefik.toml
+      name: traefik-claim1
+      readOnly: true
+    - mountPath: /var/log
+      name: traefik-claim2
+  restartPolicy: OnFailure
+  volumes:
+  - name: traefik-claim0
+    persistentVolumeClaim:
+      claimName: traefik-claim0
+      readOnly: true
+  - name: traefik-claim1
+    persistentVolumeClaim:
+      claimName: traefik-claim1
+      readOnly: true
+  - name: traefik-claim2
+    persistentVolumeClaim:
+      claimName: traefik-claim2
+status: {}

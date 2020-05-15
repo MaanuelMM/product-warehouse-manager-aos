@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.network/internal-proxy: "true"
+    io.kompose.service: products-api
+  name: products-api
+spec:
+  containers:
+  - args:
+    - mock
+    - -d
+    - -h
+    - 0.0.0.0
+    - /app/openapi.yaml
+    image: maanuelmm/prism:latest
+    name: products-api
+    resources: {}
+    volumeMounts:
+    - mountPath: /app
+      name: products-api-claim0
+      readOnly: true
+  restartPolicy: OnFailure
+  volumes:
+  - name: products-api-claim0
+    persistentVolumeClaim:
+      claimName: products-api-claim0
+      readOnly: true
+status: {}
