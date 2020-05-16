@@ -58,8 +58,7 @@ services:
       - internal-proxy
 
   invoicing-api:
-    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
-    init: true
+    image: maanuelmm/prism:tini # custom image to avoid two bugs in two different versions
     command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
     restart: on-failure # incredibly unreliable
     labels:
@@ -70,8 +69,7 @@ services:
       - internal-proxy
 
   logging-api:
-    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
-    init: true
+    image: maanuelmm/prism:tini # custom image to avoid two bugs in two different versions
     command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
     restart: on-failure # incredibly unreliable
     labels:
@@ -82,8 +80,7 @@ services:
       - internal-proxy
 
   orders-api:
-    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
-    init: true
+    image: maanuelmm/prism:tini # custom image to avoid two bugs in two different versions
     command: mock -d -h 0.0.0.0 "/app/openapi.json"
     restart: on-failure # incredibly unreliable
     labels:
@@ -94,8 +91,7 @@ services:
       - internal-proxy
 
   products-api:
-    image: maanuelmm/prism:latest # custom image to avoid two bugs in two different versions
-    init: true
+    image: maanuelmm/prism:tini # custom image to avoid two bugs in two different versions
     command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
     restart: on-failure # incredibly unreliable
     labels:
