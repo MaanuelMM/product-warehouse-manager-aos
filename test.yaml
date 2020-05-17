@@ -1,18 +1,3 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: swagger-ui
-  labels:
-    run: swagger-ui
-spec:
-  type: LoadBalancer # http://alesnosek.com/blog/2017/02/14/accessing-kubernetes-pods-from-outside-of-the-cluster/ https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/ https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
-  ports:
-  - name: "8080"
-    port: 8080
-    targetPort: 8080
-  selector:
-    run: swagger-ui
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,34 +5,62 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: swagger-ui
+      app: swagger-ui
       #role: master
       #tier: backend
   replicas: 1
   template:
     metadata:
       labels:
-        run: swagger-ui
+        app: swagger-ui
         #role: master
         #tier: backend
     spec:
       containers:
-      - name: swagger-ui
-        image: swaggerapi/swagger-ui:v3.25.2
-        env:
-        - name: URLS
-          value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
-        volumeMounts:
-        - mountPath: /usr/share/nginx/html/app
-          name: swagger-ui-specs
-          readOnly: true
-        ports:
-          - containerPort: 8080
+        - name: swagger-ui
+          image: swaggerapi/swagger-ui:v3.25.2
+          env:
+            - name: URLS
+              value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html/app
+              name: swagger-ui-specs
+              readOnly: true
+          ports:
+            - containerPort: 8080
       #restartPolicy: OnFailure # seems to be unsupported on Deployment (only Always is the supported value regarding being supported on Pod)
       volumes: # https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
-      - name: swagger-ui-specs
-        hostPath:
-          # directory location on host
-          path: ./app
-          # this field is optional
-          #type: Directory
+        - name: swagger-ui-specs
+          hostPath:
+            # directory location on host
+            path: /path/to/workspace/product-warehouse-manager-aos/app
+            # this field is optional
+            #type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: swagger-ui
+  labels:
+    app: swagger-ui
+spec:
+  #type: LoadBalancer # (or even NodePort). More info: http://alesnosek.com/blog/2017/02/14/accessing-kubernetes-pods-from-outside-of-the-cluster/ https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/ https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 8080
+  selector:
+    app: swagger-ui
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress # https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-controllers https://stackoverflow.com/questions/51511547/empty-address-kubernetes-ingress
+metadata:
+  name: shit-happens
+spec:
+  rules:
+    - host: swagger.localhost
+      http:
+        paths:
+          - backend:
+              serviceName: swagger-ui
+              servicePort: 80
