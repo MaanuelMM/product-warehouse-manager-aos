@@ -1,7 +1,12 @@
+# I think using Helm could be the best option, but right now I don't have enough time to implement that. That's why this
+# k8s file seems so chaotic in comparison with something more elegant like Helm. It's something I want to research and
+# develop in future projects.
+---
 # Before continuing with the storage specification: it's possible to use a PodPreset to accomplish the shared volume mount,
 # however, it's in alpha state, and to activate this, it's a headache depending on the k8s environment we're working on.
 # That's the reason I decided to use the more "traditional" PersistentVolume and PersistentVolumeClaim to share a volume
 # across all pods.
+#
 # The advantage of PodPreset over defined volumes is that isn't necessary to set a storage capacity and claiming then, and
 # the way it works is like a template or the more well-known inheritance in object-oriented programming languages, defining
 # the local volume on that preset and then being used by all the pods which have been referenced.
@@ -295,8 +300,14 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
-    - host: swagger.localhost
+    - host: localhost
       http:
+        paths:
+          - backend:
+              serviceName: swagger-ui
+              servicePort: 80
+    - host: swagger.localhost # Not the most elegant way to do this, but it's a nginx-ingress limitation of only one host.
+      http:                   # Using traefik could be a good way to solve this situation, but time is my enemy right now.
         paths:
           - backend:
               serviceName: swagger-ui
