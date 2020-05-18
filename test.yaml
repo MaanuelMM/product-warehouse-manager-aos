@@ -83,6 +83,153 @@ spec:
     app: logging-api
 ---
 apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-api
+spec:
+  selector:
+    matchLabels:
+      app: products-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: products-api
+    spec:
+      containers:
+        - name: products-api
+          image: maanuelmm/prism:tini
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
+          volumeMounts:
+            - mountPath: /app
+              name: products-api-spec
+              subPath: app/products-api/specification
+              readOnly: true
+          ports:
+            - containerPort: 4010
+      volumes:
+        - name: products-api-spec
+          persistentVolumeClaim:
+            claimName: shared-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-api
+  labels:
+    app: products-api
+spec:
+  ports:
+    - name: "products-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: products-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+spec:
+  selector:
+    matchLabels:
+      app: orders-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: orders-api
+    spec:
+      containers:
+        - name: orders-api
+          image: maanuelmm/prism:tini
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.json
+          volumeMounts:
+            - mountPath: /app
+              name: orders-api-spec
+              subPath: app/orders-api/specification
+              readOnly: true
+          ports:
+            - containerPort: 4010
+      volumes:
+        - name: orders-api-spec
+          persistentVolumeClaim:
+            claimName: shared-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api
+  labels:
+    app: orders-api
+spec:
+  ports:
+    - name: "orders-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: orders-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoicing-api
+spec:
+  selector:
+    matchLabels:
+      app: invoicing-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: invoicing-api
+    spec:
+      containers:
+        - name: invoicing-api
+          image: maanuelmm/prism:tini
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
+          volumeMounts:
+            - mountPath: /app
+              name: invoicing-api-spec
+              subPath: app/invoicing-api/specification
+              readOnly: true
+          ports:
+            - containerPort: 4010
+      volumes:
+        - name: invoicing-api-spec
+          persistentVolumeClaim:
+            claimName: shared-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoicing-api
+  labels:
+    app: invoicing-api
+spec:
+  ports:
+    - name: "invoicing-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: invoicing-api
+---
+apiVersion: apps/v1
 kind: Deployment # maybe ReplicaSet is possible, but idk
 metadata:
   name: swagger-ui
@@ -139,10 +286,13 @@ spec:
   selector:
     app: swagger-ui
 ---
+# For this deployment nginx-ingress is needed. In my case I'm using microk8s (by Canonical).
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress # https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-controllers https://stackoverflow.com/questions/51511547/empty-address-kubernetes-ingress
 metadata:
   name: shit-happens
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
     - host: swagger.localhost
@@ -154,7 +304,19 @@ spec:
     - host: api.localhost
       http:
         paths:
-          - path: /events
+          - path: /events.*
             backend:
               serviceName: logging-api
+              servicePort: 80
+          - path: /(Productos|Categorias).*
+            backend:
+              serviceName: products-api
+              servicePort: 80
+          - path: /pedidos.*
+            backend:
+              serviceName: orders-api
+              servicePort: 80
+          - path: /(Factura|Organizacion).*
+            backend:
+              serviceName: invoicing-api
               servicePort: 80
