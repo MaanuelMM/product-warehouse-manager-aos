@@ -295,7 +295,7 @@ spec:
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress # https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-controllers https://stackoverflow.com/questions/51511547/empty-address-kubernetes-ingress
 metadata:
-  name: shit-happens
+  name: ingress-router
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
