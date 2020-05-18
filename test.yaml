@@ -1,5 +1,40 @@
+# Before continuing with the storage specification: it's possible to use a PodPreset to accomplish the shared volume mount,
+# however, it's in alpha state, and to activate this, it's a headache depending on the k8s environment we're working on.
+# That's the reason I decided to use the more "traditional" PersistentVolume and PersistentVolumeClaim to share a volume
+# across all pods.
+# The advantage of PodPreset over defined volumes is that isn't necessary to set a storage capacity and claiming then, and
+# the way it works is like a template or the more well-known inheritance in object-oriented programming languages, defining
+# the local volume on that preset and then being used by all the pods which have been referenced.
+---
+apiVersion: v1 # https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/
+kind: PersistentVolume
+metadata:
+  name: shared-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi # I'm forced to do this
+  accessModes:
+    - ReadWriteOnce # ReadOnlyMany seems to be unsupported on HostPath volume plugin
+  hostPath:
+    path: /path/to/product-warehouse-manager-aos
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: Deployment # maybe ReplicaSet is possible, but idk
 metadata:
   name: swagger-ui
 spec:
@@ -25,15 +60,18 @@ spec:
           volumeMounts:
             - mountPath: /usr/share/nginx/html/app
               name: swagger-ui-specs
+              subPath: app
               readOnly: true
           ports:
             - containerPort: 8080
       #restartPolicy: OnFailure # seems to be unsupported on Deployment (only Always is the supported value regarding being supported on Pod)
       volumes: # https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
         - name: swagger-ui-specs
-          hostPath:
+          persistentVolumeClaim:
+            claimName: shared-claim
+          #hostPath:
             # directory location on host
-            path: /path/to/workspace/product-warehouse-manager-aos/app
+            #path: /home/manuel/Documents/vscode-workspace/product-warehouse-manager-aos/app
             # this field is optional
             #type: Directory
 ---
