@@ -51,7 +51,11 @@ spec:
         - name: logging-api
           image: maanuelmm/prism:tini
           args:
-            - "mock -d -h 0.0.0.0 /app/openapi.yaml"
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
           volumeMounts:
             - mountPath: /app
               name: logging-api-spec
