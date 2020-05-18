@@ -34,6 +34,51 @@ spec:
       storage: 100Mi
 ---
 apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-api
+spec:
+  selector:
+    matchLabels:
+      app: logging-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: logging-api
+    spec:
+      containers:
+        - name: logging-api
+          image: maanuelmm/prism:tini
+          args:
+            - "mock -d -h 0.0.0.0 /app/openapi.yaml"
+          volumeMounts:
+            - mountPath: /app
+              name: logging-api-spec
+              subPath: app/logging-api/specification
+              readOnly: true
+          ports:
+            - containerPort: 4010
+      volumes:
+        - name: logging-api-spec
+          persistentVolumeClaim:
+            claimName: shared-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-api
+  labels:
+    app: logging-api
+spec:
+  ports:
+    - name: "logging-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: logging-api
+---
+apiVersion: apps/v1
 kind: Deployment # maybe ReplicaSet is possible, but idk
 metadata:
   name: swagger-ui
@@ -101,4 +146,11 @@ spec:
         paths:
           - backend:
               serviceName: swagger-ui
+              servicePort: 80
+    - host: api.localhost
+      http:
+        paths:
+          - path: /events
+            backend:
+              serviceName: logging-api
               servicePort: 80
