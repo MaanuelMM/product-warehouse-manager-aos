@@ -254,7 +254,7 @@ spec:
     spec:
       containers:
         - name: swagger-ui
-          image: swaggerapi/swagger-ui:v3.25.2
+          image: swaggerapi/swagger-ui:v3.25.3
           env:
             - name: URLS
               value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
