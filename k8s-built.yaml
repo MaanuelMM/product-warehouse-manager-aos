@@ -1,0 +1,241 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-api
+spec:
+  selector:
+    matchLabels:
+      app: logging-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: logging-api
+    spec:
+      containers:
+        - name: logging-api
+          image: product-warehouse-manager-aos/logging-api:latest
+          imagePullPolicy: Never
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
+          ports:
+            - containerPort: 4010
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-api
+  labels:
+    app: logging-api
+spec:
+  ports:
+    - name: "logging-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: logging-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products-api
+spec:
+  selector:
+    matchLabels:
+      app: products-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: products-api
+    spec:
+      containers:
+        - name: products-api
+          image: product-warehouse-manager-aos/products-api:latest
+          imagePullPolicy: Never
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
+          ports:
+            - containerPort: 4010
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products-api
+  labels:
+    app: products-api
+spec:
+  ports:
+    - name: "products-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: products-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+spec:
+  selector:
+    matchLabels:
+      app: orders-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: orders-api
+    spec:
+      containers:
+        - name: orders-api
+          image: product-warehouse-manager-aos/orders-api:latest
+          imagePullPolicy: Never
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.json
+          ports:
+            - containerPort: 4010
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api
+  labels:
+    app: orders-api
+spec:
+  ports:
+    - name: "orders-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: orders-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoicing-api
+spec:
+  selector:
+    matchLabels:
+      app: invoicing-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: invoicing-api
+    spec:
+      containers:
+        - name: invoicing-api
+          image: product-warehouse-manager-aos/invoicing-api:latest
+          imagePullPolicy: Never
+          args:
+            - mock 
+            - -d
+            - -h
+            - 0.0.0.0
+            - /app/openapi.yaml
+          ports:
+            - containerPort: 4010
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoicing-api
+  labels:
+    app: invoicing-api
+spec:
+  ports:
+    - name: "invoicing-api"
+      port: 80
+      targetPort: 4010
+  selector:
+    app: invoicing-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swagger-ui
+spec:
+  selector:
+    matchLabels:
+      app: swagger-ui
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: swagger-ui
+    spec:
+      containers:
+        - name: swagger-ui
+          image: product-warehouse-manager-aos/swagger-ui:latest
+          imagePullPolicy: Never
+          env:
+            - name: URLS
+              value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: swagger-ui
+  labels:
+    app: swagger-ui
+spec:
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 8080
+  selector:
+    app: swagger-ui
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-router
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - backend:
+              serviceName: swagger-ui
+              servicePort: 80
+    - host: swagger.localhost
+      http:
+        paths:
+          - backend:
+              serviceName: swagger-ui
+              servicePort: 80
+    - host: api.localhost
+      http:
+        paths:
+          - path: /events.*
+            backend:
+              serviceName: logging-api
+              servicePort: 80
+          - path: /(Productos|Categorias).*
+            backend:
+              serviceName: products-api
+              servicePort: 80
+          - path: /pedidos.*
+            backend:
+              serviceName: orders-api
+              servicePort: 80
+          - path: /(Factura|Organizacion).*
+            backend:
+              serviceName: invoicing-api
+              servicePort: 80
