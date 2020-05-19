@@ -205,7 +205,7 @@ kind: Ingress
 metadata:
   name: ingress-router
   annotations:
-    nginx.ingress.kubernetes.io/use-regex: "true"
+    kubernetes.io/ingress.class: nginx
 spec:
   rules:
     - host: localhost
@@ -223,19 +223,27 @@ spec:
     - host: api.localhost
       http:
         paths:
-          - path: /events.*
+          - path: /events
             backend:
               serviceName: logging-api
               servicePort: 80
-          - path: /(Productos|Categorias).*
+          - path: /Productos
             backend:
               serviceName: products-api
               servicePort: 80
-          - path: /pedidos.*
+          - path: /Categorias
+            backend:
+              serviceName: products-api
+              servicePort: 80
+          - path: /pedidos
             backend:
               serviceName: orders-api
               servicePort: 80
-          - path: /(Factura|Organizacion).*
+          - path: /Factura
+            backend:
+              serviceName: invoicing-api
+              servicePort: 80
+          - path: /Organizacion
             backend:
               serviceName: invoicing-api
               servicePort: 80
