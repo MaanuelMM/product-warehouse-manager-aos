@@ -16,14 +16,18 @@ Windows and macOS both need an ingress if they're using the built-in Kubernetes 
 ```console
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.32.0/deploy/static/provider/cloud/deploy.yaml
 ```
-If TLS certificate error appears while applying k8s YAML file, it's because there's no certificate (or a valid one), so, for testing purposes, it's possible to remove the webhook validator (obviously not recommended in production where a valid certificate is mandatory):
+According to `ingress-nginx` documentation: _"The first time the ingress controller starts, two [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/) create the SSL Certificate used by the admission webhook. For this reason, there is an initial delay of up to two minutes until it is possible to create and validate Ingress definitions."_. That's why we must wait until those jobs are done:
+```console
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+```
+If TLS certificate error appears while applying k8s YAML file after waiting for the certificate creation, it's because it's something wrong and there's no certificate (or a valid one), so, for testing purposes, it's possible to remove the webhook validator (obviously not recommended in production where a valid certificate is mandatory):
 ```console
 kubectl delete validatingwebhookconfiguration ingress-nginx-admission
 ```
 Now should be possible to apply with no trouble.
 ### Routing not working on Linux OSes
-If you previously followed my instructions to install MicroK8s, there should be no problem while routing, however, you may missed to enable the ingress addon built-in this Kubernetes implementation.
-To ensure all addons are already enabled, please execute the following command:
+If you previously followed my instructions to install MicroK8s, there should be no problem while routing, however, you may missed to enable the ingress addon built-in this Kubernetes implementation. To ensure all addons are already enabled, please execute the following command:
 ```console
 sudo microk8s enable dns dashboard registry ingress
 ```
+That's all! Now should be possible to apply the YAML file.
