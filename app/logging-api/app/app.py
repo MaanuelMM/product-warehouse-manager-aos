@@ -2,20 +2,62 @@
 # -*- coding: utf-8 -*-
 # Authors:      MaanuelMM
 # Created:      2020/05/27
-# Last update:  2020/05/30
+# Last update:  2020/06/01
 
 
 import json  # another alternative is using jsonify provided by flask
 
 from os import environ as env
 from functools import wraps
-from flask import Flask, request, abort, make_response
-from flask_cors import CORS, cross_origin
+from flask import Flask, request, abort, make_response, Response
+from werkzeug.datastructures import EnvironHeaders
+# from flask_cors import CORS, cross_origin
 from http import HTTPStatus
 from datetime import datetime, timezone
 # from dateutil import parser, tz
 # from jsonschema import validate, FormatChecker
 from jsonschema import Draft7Validator, validators
+
+
+def _response_with_common_cors_headers(incoming_headers: EnvironHeaders):
+    response = Response()
+
+    response.headers.pop("content-type")
+
+    response.headers.add("Access-Control-Allow-Origin",
+                         incoming_headers.get("origin", default="*"))
+    response.headers.add("Access-Control-Allow-Headers",
+                         incoming_headers.get("access-control-request-headers", default="*"))
+    response.headers.add("Access-Control-Allow-Credentials",
+                         "true")
+    response.headers.add("Access-Control-Expose-Headers",
+                         incoming_headers.get("access-control-expose-headers", default="*"))
+
+    return response
+
+
+# json.dumps(message_dict(code_enum))
+
+def message_response(incoming_headers: EnvironHeaders, status_code: int = HTTPStatus.NO_CONTENT, data: str = None, mimetype: str = 'application/json'):
+    response = _response_with_common_cors_headers(incoming_headers)
+
+    response.status_code = status_code
+
+    if data is not None:
+        response.data = data
+        response.mimetype = mimetype
+        response.headers.add("Content-Length", str(len(response.data)))
+    else:
+        response.headers.add("Content-Length", "0")
+
+    return response
+
+
+def message_dict(code: HTTPStatus):
+    return {
+        "code": code,
+        "message": code.description
+    }
 
 
 def extend_validator(validator_class):
@@ -83,11 +125,11 @@ try:
     assert PREFIX[0] == "/"
 
     HOST = env.get("HOST", "0.0.0.0")
-    PORT = env.get("PORT", "4010")
+    PORT = int(env.get("PORT", "4010"))
 
     server = Flask(__name__)
-    CORS(server, supports_credentials=True)
-    server.config['CORS_HEADERS'] = 'Content-Type'
+    # CORS(server, supports_credentials=True)
+    # server.config['CORS_HEADERS'] = 'Content-Type'
 except:
     exit(1)
 
@@ -96,7 +138,8 @@ def authorize(f):
     @wraps(f)
     def check_authorization(*args, **kwargs):
         if "X-API-Key" not in request.headers:
-            abort(HTTPStatus.UNAUTHORIZED)
+            abort(message_response(request.headers, HTTPStatus.UNAUTHORIZED,
+                                   json.dumps(message_dict(HTTPStatus.UNAUTHORIZED))))
         return f(*args, **kwargs)
     return check_authorization
 
@@ -110,65 +153,81 @@ def validate_event(f):
                 instance = request.json
                 SchemaValidator(EVENT_REQUEST_SCHEMA).validate(instance)
             except:
-                abort(HTTPStatus.UNPROCESSABLE_ENTITY)
+                abort(message_response(request.headers, HTTPStatus.UNPROCESSABLE_ENTITY, json.dumps(
+                    message_dict(HTTPStatus.UNPROCESSABLE_ENTITY))))
         else:
-            abort(HTTPStatus.UNPROCESSABLE_ENTITY)
+            abort(message_response(request.headers, HTTPStatus.UNPROCESSABLE_ENTITY, json.dumps(
+                message_dict(HTTPStatus.UNPROCESSABLE_ENTITY))))
         return f(instance, *args, **kwargs)
     return validate_instance
 
 
+def cors_handler(f):
+    @wraps(f)
+    def cors_prefligth_headers(*args, **kwargs):
+        origin = request.headers.get(
+            "origin")
+        access_control_request_method = request.headers.get(
+            "access-control-request-method")
+
+        if origin and access_control_request_method:
+            response = message_response(request.headers)
+            response.headers.add("Access-Control-Allow-Methods",
+                                 access_control_request_method)  # something strange happens with prism here
+            response.headers.add("Vary",
+                                 "origin")
+            abort(response)
+        return f(*args, **kwargs)
+    return cors_prefligth_headers
+
+
 @server.route(PREFIX, methods=['OPTIONS'])
-@cross_origin()
+@cors_handler
 @authorize
 def options_base():
-    response = server.response_class(status=HTTPStatus.NO_CONTENT)
+    response = message_response(request.headers, HTTPStatus.NO_CONTENT, json.dumps(
+        message_dict(HTTPStatus.NO_CONTENT)))
     response.headers.add("Allow", ALLOW_BASE)
     return response
 
 
 @server.route(PREFIX, methods=['GET'])
-@cross_origin()
 @authorize
 def cget_base():  # request.args for parametrized url
     example = {"events": [{"event": {"eventId": 878923748, "origin": "ORDERS", "date": "2020-05-27T19:06:46.375Z",
                                      "message": "string", "level": "info", "_links": {"parent": {"href": "string"}, "self": {"href": "string"}}}}]}
-    response = server.response_class(response=json.dumps(
-        example), status=HTTPStatus.OK, mimetype='application/json')
-    return response
+
+    return message_response(request.headers, HTTPStatus.OK, json.dumps(example))
 
 
 @server.route(PREFIX, methods=['POST'])
-@cross_origin()
 @authorize
 @validate_event
 def post_base(instance):
-    response = server.response_class(response=json.dumps(
-        instance), status=HTTPStatus.CREATED, mimetype='application/json')
-    return response
+    return message_response(request.headers, HTTPStatus.CREATED, json.dumps(instance))
 
 
 @server.route(PREFIX + "/<event_id>", methods=['OPTIONS'])
-@cross_origin()
+@cors_handler
 @authorize
 def options_id(event_id):
-    response = server.response_class(status=HTTPStatus.NO_CONTENT)
-    response.headers.add("Allow", ALLOW_BASE)
+    response = message_response(request.headers, HTTPStatus.NO_CONTENT, json.dumps(
+        message_dict(HTTPStatus.NO_CONTENT)))
+    response.headers.add("Allow", ALLOW_ID)
     return response
 
 
 @server.route(PREFIX + "/<event_id>", methods=['GET'])
-@cross_origin()
 @authorize
 def get_id(event_id):
     example = {"event": {"eventId": 878923748, "origin": "ORDERS", "date": "2020-05-27T19:06:46.375Z",
                          "message": "string", "level": "info", "_links": {"parent": {"href": "string"}, "self": {"href": "string"}}}}
-    response = server.response_class(response=json.dumps(
-        example), status=HTTPStatus.OK, mimetype='application/json')
-    return response
+
+    return message_response(request.headers, HTTPStatus.OK, json.dumps(example))
 
 
 if __name__ == "__main__":
     try:
-        server.run(host=HOST, port=int(PORT))
+        server.run(host=HOST, port=PORT)
     except:
         exit(1)
