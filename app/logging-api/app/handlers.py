@@ -14,6 +14,7 @@ from elasticsearch.exceptions import ConflictError, NotFoundError
 from uuid import uuid1, UUID
 
 
+# the biggest $#*! i've ever done - in a bad way
 class EventHandler():
 
     def __init__(self, host: str, port: int, index: str, prefix: str):
@@ -93,15 +94,11 @@ class EventHandler():
 
         try:
             if query:
-                print(str(query))
                 result = self.es.search(index=self.index, body={'query': {'bool': {'must': [
                                         {'match': {key: value}} for key, value in query.items()]}}})['hits']['hits']
-                print("Result", str(result))
             else:
-                print("No tiene")
                 result = self.es.search(index=self.index, body={'query': {'match_all': {}}})[
                     'hits']['hits']
-                print("Result", str(result))
         except NotFoundError:
             result = dict()
         except Exception:
@@ -109,7 +106,7 @@ class EventHandler():
 
         return result
 
-    @ staticmethod
+    @staticmethod
     def options_handler(allow_header):
         response = make_response(request.headers)
         response.headers.add("Allow", allow_header)
