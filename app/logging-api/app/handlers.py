@@ -12,6 +12,8 @@ from http import HTTPStatus
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConflictError, NotFoundError
 from uuid import uuid1, UUID
+from datetime import datetime, timezone
+from pyrfc3339 import generate, parse
 
 
 # the biggest $#*! i've ever done - in a bad way
@@ -34,8 +36,14 @@ class EventHandler():
 
         return new_data
 
+    @staticmethod
+    def _rfc_3339_format(date_time: datetime):
+        return generate(date_time, microseconds=True)
+
     def _generate_dict_body(self, data: dict, event_id: int):
         new_data = dict()
+
+        data['date'] = EventHandler._rfc_3339_format(data['date'])
 
         new_data["eventId"] = event_id
         new_data.update(data)
@@ -56,6 +64,8 @@ class EventHandler():
 
     def _generate_csv_body(self, data: dict, event_id: int):  # no headers
         new_data = list()
+
+        data['date'] = EventHandler._rfc_3339_format(data['date'])
 
         new_data.append(event_id)
         new_data.append(EventHandler._join_list(
@@ -99,9 +109,11 @@ class EventHandler():
 
             for key, value in query.items():
                 if key == 'dateFrom':
-                    date_dict['gte'] = value
+                    date_dict['gte'] = EventHandler._from_datetime_to_timestamp(
+                        parse(value))
                 elif key == 'dateTo':
-                    date_dict['lte'] = value
+                    date_dict['lte'] = EventHandler._from_datetime_to_timestamp(
+                        parse(value))
                 else:
                     match_dict[key] = value
 
@@ -110,7 +122,7 @@ class EventHandler():
                                              for key, value in match_dict.items()]
 
             if date_dict:
-                new_query['bool']['filter'] = {'range': {'age': date_dict}}
+                new_query['bool']['filter'] = {'range': {'date': date_dict}}
 
             return new_query
 
@@ -132,32 +144,43 @@ class EventHandler():
         return result
 
     @staticmethod
+    def _from_timestamp_to_datetime(timestamp: float):
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+
+    @staticmethod
+    def _from_datetime_to_timestamp(date_time: datetime):
+        return datetime.timestamp(date_time)
+
+    @staticmethod
     def options_handler(allow_header):
         response = make_response(request.headers)
         response.headers.add("Allow", allow_header)
         return response
 
     def post_handler(self, data: dict, schema_order: list):
-        response = None
+        response = make_response(request.headers, HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(
+            http_message(HTTPStatus.INTERNAL_SERVER_ERROR)))
         retries = 0
 
         while retries <= 3:
             try:
                 body = EventHandler._order_data(data, schema_order)
+                body['date'] = EventHandler._from_datetime_to_timestamp(
+                    parse(body['date']))
                 event_id = uuid1()
                 self.es.create(index=self.index, id=event_id, body=body)
-                response_body = self._generate_dict_body(body, event_id.int)
+                body['date'] = EventHandler._from_timestamp_to_datetime(
+                    body['date'])
+                body = self._generate_dict_body(body, event_id.int)
                 response = make_response(
-                    request.headers, HTTPStatus.CREATED, json.dumps(response_body))
+                    request.headers, HTTPStatus.CREATED, json.dumps(body))
                 response.headers.add(
-                    "Location", response_body["_links"]["self"]["href"])
+                    "Location", body["_links"]["self"]["href"])
                 break
             except ConflictError:  # it's pretty impossible an uuid collision, but who knows...
                 retries += 1
                 continue
             except Exception:  # here is if something really bad happens, so let's exit and thow a 500 error
-                response = make_response(request.headers, HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(
-                    http_message(HTTPStatus.INTERNAL_SERVER_ERROR)))
                 break
 
         return response
@@ -167,6 +190,8 @@ class EventHandler():
 
         data = self._get_event_by_id(event_id)
         if data:
+            data['date'] = EventHandler._from_timestamp_to_datetime(
+                data['date'])
             if str(request.accept_mimetypes) == 'text/csv':
                 response = make_response(request.headers, HTTPStatus.OK, EventHandler._join_list(
                     [EventHandler._generate_csv_header(data), self._generate_csv_body(
@@ -188,8 +213,13 @@ class EventHandler():
 
         data = self._search_events(query)
         if data:
+            for event in data:
+                event['_source']['date'] = EventHandler._from_timestamp_to_datetime(
+                    event['_source']['date'])
+
             if str(request.accept_mimetypes) == 'text/csv':
-                csv = [EventHandler._generate_csv_header(data[0])] # all are the same - in other words, i don't care
+                # all are the same - in other words, i don't care
+                csv = [EventHandler._generate_csv_header(data[0])]
                 for event in data:
                     csv.append(self._generate_csv_body(
                         event['_source'], UUID(event['_id']).int))
