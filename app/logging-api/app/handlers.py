@@ -89,16 +89,41 @@ class EventHandler():
 
         return data
 
+    @staticmethod
+    def _generate_query(query: dict):
+        if query:
+            match_dict = dict()
+            date_dict = dict()
+
+            new_query = {'bool': {}}
+
+            for key, value in query.items():
+                if key == 'dateFrom':
+                    date_dict['gte'] = value
+                elif key == 'dateTo':
+                    date_dict['lte'] = value
+                else:
+                    match_dict[key] = value
+
+            if match_dict:
+                new_query['bool']['must'] = [{'match': {key: value}}
+                                             for key, value in match_dict.items()]
+
+            if date_dict:
+                new_query['bool']['filter'] = {'range': {'age': date_dict}}
+
+            return new_query
+
+        else:
+            return {'match_all': {}}
+
     def _search_events(self, query: dict):
         result = None
 
         try:
-            if query:
-                result = self.es.search(index=self.index, body={'query': {'bool': {'must': [
-                                        {'match': {key: value}} for key, value in query.items()]}}})['hits']['hits']
-            else:
-                result = self.es.search(index=self.index, body={'query': {'match_all': {}}})[
-                    'hits']['hits']
+            query = EventHandler._generate_query(query)
+            result = self.es.search(index=self.index, body={'query': query})[
+                'hits']['hits']
         except NotFoundError:
             result = dict()
         except Exception:
