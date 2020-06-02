@@ -70,7 +70,10 @@ class EventHandler():
         new_data.append(event_id)
         new_data.append(EventHandler._join_list(
             [value for value in data.values()]))
-        new_data.append(self.prefix)
+        if self.prefix:
+            new_data.append(self.prefix)
+        else:
+            new_data.append('/')
         new_data.append(self.prefix + f"/{event_id}")
 
         return EventHandler._join_list(new_data)
@@ -220,7 +223,7 @@ class EventHandler():
 
             if str(request.accept_mimetypes) == 'text/csv':
                 # all are the same - in other words, i don't care
-                csv = [EventHandler._generate_csv_header(data[0])]
+                csv = [EventHandler._generate_csv_header(data[0]['_source'])]
                 for event in data:
                     csv.append(self._generate_csv_body(
                         event['_source'], UUID(event['_id']).int))
