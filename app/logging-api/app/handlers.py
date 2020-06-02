@@ -117,8 +117,9 @@ class EventHandler():
 
     def post_handler(self, data: dict, schema_order: list):
         response = None
+        retries = 0
 
-        while True:
+        while retries <= 3:
             try:
                 body = EventHandler._order_data(data, schema_order)
                 event_id = uuid1()
@@ -130,6 +131,7 @@ class EventHandler():
                     "Location", response_body["_links"]["self"]["href"])
                 break
             except ConflictError:  # it's pretty impossible an uuid collision, but who knows...
+                retries += 1
                 continue
             except Exception:  # here is if something really bad happens, so let's exit and thow a 500 error
                 response = make_response(request.headers, HTTPStatus.INTERNAL_SERVER_ERROR, json.dumps(
