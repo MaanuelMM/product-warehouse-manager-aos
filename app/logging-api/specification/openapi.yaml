@@ -50,7 +50,7 @@ paths:
         - $ref: "#/components/parameters/origin"
         - $ref: "#/components/parameters/dateFrom"
         - $ref: "#/components/parameters/dateTo"
-        - $ref: "#/components/parameters/text"
+        - $ref: "#/components/parameters/message"
         - $ref: "#/components/parameters/level"
       responses:
         "200":
@@ -328,10 +328,10 @@ components:
       schema:
         type: string
         format: "date-time"
-    text:
-      name: text
+    message:
+      name: message
       in: query
-      description: Text of the event
+      description: Message of the event
       schema:
         type: string
     level:
