@@ -7,7 +7,6 @@
 
 import json
 
-from data import Data
 from functools import wraps
 from flask import request, abort
 from http import HTTPStatus
