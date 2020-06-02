@@ -134,8 +134,8 @@ class EventHandler():
 
         try:
             query = EventHandler._generate_query(query)
-            result = self.es.search(index=self.index, body={'query': query})[
-                'hits']['hits']
+            result = self.es.search(index=self.index, body={
+                                    'size': '10000', 'query': query})['hits']['hits']
         except NotFoundError:
             result = dict()
         except Exception:
