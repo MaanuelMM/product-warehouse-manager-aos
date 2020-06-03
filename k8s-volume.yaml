@@ -100,7 +100,7 @@ spec:
           volumeMounts:
             - mountPath: /usr/share/elasticsearch/data
               name: logging-db-volume
-              subPath: db-data
+              subPath: db/logging-db
           ports:
             - containerPort: 9200
             - containerPort: 9300 # used when using multi-node elasticsearch databases
