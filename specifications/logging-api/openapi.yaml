@@ -91,12 +91,8 @@ paths:
           headers:
             Location:
               $ref: "#/components/headers/Location"
-        "400":
-          $ref: "#/components/responses/400"
         "401":
           $ref: "#/components/responses/401"
-        "404":
-          $ref: "#/components/responses/404"
         "422":
           $ref: "#/components/responses/422"
   /events/{eventId}:
@@ -246,15 +242,6 @@ components:
           description: HTTP message
           type: string
   responses:
-    "400":
-      description: Malformed Request Body
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Message"
-          examples:
-            "400":
-              $ref: "#/components/examples/400"
     "401":
       description: Unauthorized Token Or Missing X-API-Key Header
       content:
@@ -283,10 +270,6 @@ components:
             "422":
               $ref: "#/components/examples/422"
   examples:
-    "400":
-      value:
-        code: 400
-        message: Bad Request
     "401":
       value:
         code: 401
