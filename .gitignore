@@ -4,6 +4,9 @@
 # traefik-logs
 traefik/log/
 
+# elasticsearch-data
+db-data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
