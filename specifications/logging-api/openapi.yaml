@@ -3,7 +3,7 @@ info:
   title: Logging API
   description: "*Logging API* for AOS subject"
   license:
-    name: Creative Commons Zero v1.0 Universal
+    name: GNU General Public License v3.0
     url: https://github.com/MaanuelMM/logging-api-aos/blob/master/LICENSE
   version: 3.0.0
   contact:
