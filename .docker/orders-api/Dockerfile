@@ -1,3 +1,3 @@
 FROM maanuelmm/prism:tini
 
-COPY app/orders-api/specification/openapi.json /app/openapi.json
+COPY specifications/orders-api/openapi.json /app/openapi.json

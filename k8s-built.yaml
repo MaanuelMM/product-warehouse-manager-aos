@@ -9,19 +9,16 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: logging-api
       labels:
         app: logging-api
     spec:
       containers:
         - name: logging-api
-          image: product-warehouse-manager-aos/logging-api:latest
-          imagePullPolicy: Never
-          args:
-            - mock 
-            - -d
-            - -h
-            - 0.0.0.0
-            - /app/openapi.yaml
+          image: maanuelmm/logging-api-aos:latest
+          env:
+            - name: DB_HOST
+              value: logging-db
           ports:
             - containerPort: 4010
 ---
@@ -42,6 +39,54 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: logging-db
+spec:
+  selector:
+    matchLabels:
+      app: logging-db
+  replicas: 1 # discovery.type must be changed and do some stuff that i'm not aware of
+  template:
+    metadata:
+      name: logging-db
+      labels:
+        app: logging-db
+    spec:
+      containers:
+        - name: logging-db
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.7.1
+          env:
+            - name: discovery.type
+              value: single.node
+          volumeMounts:
+            - mountPath: /usr/share/elasticsearch/data
+              name: logging-db-volume
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300 # used when using multi-node elasticsearch databases
+      volumes:
+        - name: logging-db-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-db
+  labels:
+    app: logging-db
+spec:
+  ports:
+    - name: "logging-db"
+      port: 9200
+      targetPort: 9200
+    - name: "logging-db-discovery"
+      port: 9300
+      targetPort: 9300
+  selector:
+    app: logging-db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: products-api
 spec:
   selector:
@@ -50,6 +95,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: products-api
       labels:
         app: products-api
     spec:
@@ -58,7 +104,7 @@ spec:
           image: product-warehouse-manager-aos/products-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -91,6 +137,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: orders-api
       labels:
         app: orders-api
     spec:
@@ -99,7 +146,7 @@ spec:
           image: product-warehouse-manager-aos/orders-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -132,6 +179,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: invoicing-api
       labels:
         app: invoicing-api
     spec:
@@ -140,7 +188,7 @@ spec:
           image: product-warehouse-manager-aos/invoicing-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -173,6 +221,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: swagger-ui
       labels:
         app: swagger-ui
     spec:
@@ -182,7 +231,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: URLS
-              value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
+              value: '[{url:"/app/logging-api/openapi.yaml",name:"Logging API"},{url:"/app/products-api/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/openapi.json",name:"Orders API"}]'
           ports:
             - containerPort: 8080
 ---

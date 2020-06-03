@@ -20,11 +20,11 @@ metadata:
 spec:
   storageClassName: manual
   capacity:
-    storage: 100Mi # I'm forced to do this
+    storage: 20Gi
   accessModes:
-    - ReadWriteOnce # ReadOnlyMany seems to be unsupported on HostPath volume plugin
+    - ReadWriteOnce
   hostPath:
-    path: /path/to/product-warehouse-manager-aos
+    path: /home/manuel/Documents/vscode-workspace/product-warehouse-manager-aos
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -36,7 +36,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 20Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,29 +49,18 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: logging-api
       labels:
         app: logging-api
     spec:
       containers:
         - name: logging-api
-          image: maanuelmm/prism:tini
-          args:
-            - mock 
-            - -d
-            - -h
-            - 0.0.0.0
-            - /app/openapi.yaml
-          volumeMounts:
-            - mountPath: /app
-              name: logging-api-spec
-              subPath: app/logging-api/specification
-              readOnly: true
+          image: maanuelmm/logging-api-aos:latest
+          env:
+            - name: DB_HOST
+              value: logging-db
           ports:
             - containerPort: 4010
-      volumes:
-        - name: logging-api-spec
-          persistentVolumeClaim:
-            claimName: shared-claim
 ---
 apiVersion: v1
 kind: Service
@@ -90,6 +79,56 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: logging-db
+spec:
+  selector:
+    matchLabels:
+      app: logging-db
+  replicas: 1 # discovery.type must be changed and do some stuff that i'm not aware of
+  template:
+    metadata:
+      name: logging-db
+      labels:
+        app: logging-db
+    spec:
+      containers:
+        - name: logging-db
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.7.1
+          env:
+            - name: discovery.type
+              value: single-node
+          volumeMounts:
+            - mountPath: /usr/share/elasticsearch/data
+              name: logging-db-volume
+              subPath: db/logging-db
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300 # used when using multi-node elasticsearch databases
+      volumes:
+        - name: logging-db-volume
+          persistentVolumeClaim:
+            claimName: shared-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-db
+  labels:
+    app: logging-db
+spec:
+  ports:
+    - name: "logging-db"
+      port: 9200
+      targetPort: 9200
+    - name: "logging-db-discovery"
+      port: 9300
+      targetPort: 9300
+  selector:
+    app: logging-db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: products-api
 spec:
   selector:
@@ -98,6 +137,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: products-api
       labels:
         app: products-api
     spec:
@@ -105,7 +145,7 @@ spec:
         - name: products-api
           image: maanuelmm/prism:tini
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -113,7 +153,7 @@ spec:
           volumeMounts:
             - mountPath: /app
               name: products-api-spec
-              subPath: app/products-api/specification
+              subPath: specifications/products-api
               readOnly: true
           ports:
             - containerPort: 4010
@@ -147,6 +187,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: orders-api
       labels:
         app: orders-api
     spec:
@@ -154,7 +195,7 @@ spec:
         - name: orders-api
           image: maanuelmm/prism:tini
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -162,7 +203,7 @@ spec:
           volumeMounts:
             - mountPath: /app
               name: orders-api-spec
-              subPath: app/orders-api/specification
+              subPath: specifications/orders-api
               readOnly: true
           ports:
             - containerPort: 4010
@@ -196,6 +237,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: invoicing-api
       labels:
         app: invoicing-api
     spec:
@@ -203,7 +245,7 @@ spec:
         - name: invoicing-api
           image: maanuelmm/prism:tini
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -211,7 +253,7 @@ spec:
           volumeMounts:
             - mountPath: /app
               name: invoicing-api-spec
-              subPath: app/invoicing-api/specification
+              subPath: specifications/invoicing-api
               readOnly: true
           ports:
             - containerPort: 4010
@@ -247,6 +289,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: swagger-ui
       labels:
         app: swagger-ui
         #role: master
@@ -254,14 +297,14 @@ spec:
     spec:
       containers:
         - name: swagger-ui
-          image: swaggerapi/swagger-ui:v3.25.3
+          image: swaggerapi/swagger-ui:v3.25.5
           env:
             - name: URLS
-              value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
+              value: '[{url:"/app/logging-api/openapi.yaml",name:"Logging API"},{url:"/app/products-api/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/openapi.json",name:"Orders API"}]'
           volumeMounts:
             - mountPath: /usr/share/nginx/html/app
               name: swagger-ui-specs
-              subPath: app
+              subPath: specifications
               readOnly: true
           ports:
             - containerPort: 8080
@@ -271,10 +314,10 @@ spec:
           persistentVolumeClaim:
             claimName: shared-claim
           #hostPath:
-            # directory location on host
-            #path: /home/manuel/Documents/vscode-workspace/product-warehouse-manager-aos/app
-            # this field is optional
-            #type: Directory
+          # directory location on host
+          #path: /home/manuel/Documents/vscode-workspace/product-warehouse-manager-aos/app
+          # this field is optional
+          #type: Directory
 ---
 apiVersion: v1
 kind: Service
@@ -310,7 +353,7 @@ spec:
               serviceName: swagger-ui
               servicePort: 80
     - host: swagger.localhost # Not the most elegant way to do this, but it's a nginx-ingress limitation of only one host.
-      http:                   # Using traefik could be a good way to solve this situation, but time is my enemy right now.
+      http: # Using traefik could be a good way to solve this situation, but time is my enemy right now.
         paths:
           - backend:
               serviceName: swagger-ui

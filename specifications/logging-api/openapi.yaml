@@ -3,9 +3,9 @@ info:
   title: Logging API
   description: "*Logging API* for AOS subject"
   license:
-    name: Creative Commons Zero v1.0 Universal
+    name: GNU General Public License v3.0
     url: https://github.com/MaanuelMM/logging-api-aos/blob/master/LICENSE
-  version: 2.0.3
+  version: 3.0.0
   contact:
     name: Manuel Martín Malagón
     url: https://github.com/MaanuelMM
@@ -50,7 +50,7 @@ paths:
         - $ref: "#/components/parameters/origin"
         - $ref: "#/components/parameters/dateFrom"
         - $ref: "#/components/parameters/dateTo"
-        - $ref: "#/components/parameters/text"
+        - $ref: "#/components/parameters/message"
         - $ref: "#/components/parameters/level"
       responses:
         "200":
@@ -91,12 +91,8 @@ paths:
           headers:
             Location:
               $ref: "#/components/headers/Location"
-        "400":
-          $ref: "#/components/responses/400"
         "401":
           $ref: "#/components/responses/401"
-        "404":
-          $ref: "#/components/responses/404"
         "422":
           $ref: "#/components/responses/422"
   /events/{eventId}:
@@ -203,9 +199,9 @@ components:
       title: EventCSV
       type: string
       x-faker: lorem.paragraphs
-      example: >
-        eventId,origin,date,message,level,_parent_href_link,_self_href_link
-        89776253,"ORDERS","2020-03-08T18:30:55.855Z","Order #127 confirmed. Product: #12. Quantity: #2. Company: #32165478","info","/events","/events/89776253"
+      example: |
+        eventId,origin,date,message,level,_link
+        89776253,"ORDERS","2020-03-08T18:30:55.855Z","Order #127 confirmed. Product: #12. Quantity: #2. Company: #32165478","info","{'parent': {'href': '/events'}, 'self': {'href': '/events/89776253'}}"
     EventRequestBody:
       title: EventRequestBody
       type: object
@@ -246,15 +242,6 @@ components:
           description: HTTP message
           type: string
   responses:
-    "400":
-      description: Malformed Request Body
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Message"
-          examples:
-            "400":
-              $ref: "#/components/examples/400"
     "401":
       description: Unauthorized Token Or Missing X-API-Key Header
       content:
@@ -283,10 +270,6 @@ components:
             "422":
               $ref: "#/components/examples/422"
   examples:
-    "400":
-      value:
-        code: 400
-        message: Bad Request
     "401":
       value:
         code: 401
@@ -328,10 +311,10 @@ components:
       schema:
         type: string
         format: "date-time"
-    text:
-      name: text
+    message:
+      name: message
       in: query
-      description: Text of the event
+      description: Message of the event
       schema:
         type: string
     level:
