@@ -5,7 +5,7 @@ info:
   license:
     name: Creative Commons Zero v1.0 Universal
     url: https://github.com/MaanuelMM/logging-api-aos/blob/master/LICENSE
-  version: 2.0.3
+  version: 3.0.0
   contact:
     name: Manuel Martín Malagón
     url: https://github.com/MaanuelMM
@@ -203,9 +203,9 @@ components:
       title: EventCSV
       type: string
       x-faker: lorem.paragraphs
-      example: >
-        eventId,origin,date,message,level,_parent_href_link,_self_href_link
-        89776253,"ORDERS","2020-03-08T18:30:55.855Z","Order #127 confirmed. Product: #12. Quantity: #2. Company: #32165478","info","/events","/events/89776253"
+      example: |
+        eventId,origin,date,message,level,_link
+        89776253,"ORDERS","2020-03-08T18:30:55.855Z","Order #127 confirmed. Product: #12. Quantity: #2. Company: #32165478","info","{'parent': {'href': '/events'}, 'self': {'href': '/events/89776253'}}"
     EventRequestBody:
       title: EventRequestBody
       type: object
