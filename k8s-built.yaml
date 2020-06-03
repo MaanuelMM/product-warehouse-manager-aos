@@ -15,14 +15,10 @@ spec:
     spec:
       containers:
         - name: logging-api
-          image: product-warehouse-manager-aos/logging-api:latest
-          imagePullPolicy: Never
-          args:
-            - mock
-            - -d
-            - -h
-            - 0.0.0.0
-            - /app/openapi.yaml
+          image: maanuelmm/logging-api-aos:latest
+          env:
+            - name: DB_HOST
+              value: logging-db
           ports:
             - containerPort: 4010
 ---
@@ -39,6 +35,54 @@ spec:
       targetPort: 4010
   selector:
     app: logging-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-db
+spec:
+  selector:
+    matchLabels:
+      app: logging-db
+  replicas: 1 # discovery.type must be changed and do some stuff that i'm not aware of
+  template:
+    metadata:
+      name: logging-db
+      labels:
+        app: logging-db
+    spec:
+      containers:
+        - name: logging-db
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
+          env:
+            - name: discovery.type
+              value: single.node
+          volumeMounts:
+            - mountPath: /usr/share/elasticsearch/data
+              name: logging-db-volume
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300 # used when using multi-node elasticsearch databases
+      volumes:
+        - name: logging-db-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-db
+  labels:
+    app: logging-db
+spec:
+  ports:
+    - name: "logging-db"
+      port: 9200
+      targetPort: 9200
+    - name: "logging-db-discovery"
+      port: 9300
+      targetPort: 9300
+  selector:
+    app: logging-db
 ---
 apiVersion: apps/v1
 kind: Deployment
