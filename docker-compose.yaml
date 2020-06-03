@@ -24,7 +24,7 @@ services:
       - internal-proxy
 
   swagger-ui:
-    image: swaggerapi/swagger-ui:v3.25.3
+    image: swaggerapi/swagger-ui:v3.25.5
     restart: on-failure
     depends_on:
       - api-gateway
