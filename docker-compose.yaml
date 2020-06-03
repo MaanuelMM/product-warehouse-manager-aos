@@ -89,7 +89,7 @@ services:
     environment:
       - "discovery.type=single-node" # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
     volumes:
-      - logging-db:/usr/share/elasticsearch/data
+      - ./db/logging-db:/usr/share/elasticsearch/data
     networks:
       - internal-proxy
 
@@ -120,6 +120,3 @@ networks:
     internal: false
   internal-proxy:
     internal: true
-
-volumes:
-  logging-db:
