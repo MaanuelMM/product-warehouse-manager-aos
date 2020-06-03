@@ -85,7 +85,9 @@ docker-compose down
 Para este supuesto, primero debemos activar la implementación **Kubernetes** proporcionada por **Docker** (no haremos uso de ninguna otra implementación tales como `minikube` o `microk8s` con **Multipass**).
 
 Para ello debemos abrir las opciones de **Docker for Desktop** y activar la implementación de **Kubernetes**:
-![]()
+
+
+![Kubernetes from Docker Desktop](/docs/img/kubernetes-docker-desktop.png)
 
 Una vez activado, deberemos desplegar `ingress-nginx` proporcionado por la gente de **Kubernetes** con el siguiente comando:
 
@@ -155,10 +157,63 @@ De una forma u otra ya tendremos los puertos 80 y 443 libres.
 ##### Opción 1: uso de volúmenes
 Kubernetes no permite el uso de `paths` relativos, por lo que para desplegar esta opción debemos realizar un paso previo dependiendo del sistema operativo que estemos usando.
 
+###### GNU\Linux
+Bastará con abrir el fichero `k8s-volume.yaml` y cambiar en el **PersistentVolume** el `path` del `hostPath` con el path raíz del proyecto:
+
+```yaml
+hostPath:
+    path: /home/manuel/Documents/vscode-workspace/product-warehouse-manager-aos
+```
+
+###### macOS
+Deberemos, primero, compartir con Docker la ruta deseada, tal y como se muestra en la imagen:
+
+![macOS file sharing](/docs/img/volume-macos.png)
+
+Después, será suficiente con establecer el path en el que se encuentre el proyecto:
+
+```yaml
+hostPath:
+    path: /Users/manuel/Documents/vscode-workspace/product-warehouse-manager-aos
+```
+
+###### Windows con Hyper-V
+Primero, al igual que en **macOS**, deberemos compartir la ruta deseada:
+
+![Windows Hyper-V file sharing](/docs/img/volume-windows.png)
+
+La diferencia respecto con **macOS** es que no hay ruta directa, y deberemos escribir la ruta precedida de `/host_mnt` y la letra del disco en minúscula:
+
+```yaml
+hostPath:
+    path: /host_mnt/c/Users/manuel/Documents/vscode-workspace/product-warehouse-manager-aos
+```
+
+###### Windows con WSL2
+Si utilizamos el subsistema de Linux como backend, no hace falta compartir ninguna ruta, pues ya está montada por defecto, sin embargo, la ruta para acceder cambia incluso que con el backend de Hyper-V, precedido de `/run/desktop/mnt/host`:
+
+```yaml
+hostPath:
+    path: /run/desktop/mnt/host/c/Users/manuel/Documents/vscode-workspace/product-warehouse-manager-aos
+```
+
+###### Despliegue
+Para su despliegue, ejecutaremos el siguiente comando:
+
+```console
+kubectl apply -f k8s-volume.yaml
+```
+
+Una vez acabemos, ejecutaremos el siguiente comando:
+
+```console
+kubectl delete -f k8s-volume.yaml
+```
+
 ##### Opción 2: uso de imágenes construidas
 Para este caso omitiremos el uso de volúmenes, pero igualmente tendremos que construir las imágenes con los ficheros que necesitamos para crear y ejecutar los contenedores.
 
-Ejecutaremos los siguientes comandos en el directorio raíz de este proyecto en una consola con los privilegios necesarios para construir cada una de las imágenes a usar:
+Ejecutaremos los siguientes comandos en el **directorio raíz** de este proyecto en una consola con los privilegios necesarios para construir cada una de las imágenes a usar:
 
 ```console
 docker build -t product-warehouse-manager-aos/invoicing-api:latest -f .docker/invoicing-api/Dockerfile .
