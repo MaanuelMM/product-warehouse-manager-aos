@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Authors:      MaanuelMM
 # Created:      2020/06/01
-# Last update:  2020/06/02
+# Last update:  2020/06/03
 
 import json
 
@@ -66,10 +66,7 @@ class EventHandler():
         new_data.append(event_id)
         new_data.append(EventHandler._join_list(
             [value for value in data.values()]))
-        if self.prefix:
-            new_data.append(self.prefix)
-        else:
-            new_data.append('/')
+        new_data.append(self.prefix)
         new_data.append(self.prefix + f"/{event_id}")
 
         return EventHandler._join_list(new_data)
