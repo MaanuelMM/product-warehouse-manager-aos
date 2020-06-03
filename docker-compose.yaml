@@ -81,7 +81,7 @@ services:
       - internal-proxy
 
   logging-db:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.7.1
     container_name: logging-db # limited to one node to be reachable by the same hostname
     restart: on-failure
     labels:
