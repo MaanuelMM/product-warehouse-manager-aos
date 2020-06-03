@@ -13,7 +13,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConflictError, NotFoundError
 from uuid import uuid1, UUID
 from datetime import datetime, timezone
-from pyrfc3339 import generate, parse
+from strict_rfc3339 import rfc3339_to_timestamp, timestamp_to_rfc3339_utcoffset
 
 
 # the biggest $#*! i've ever done - in a bad way
@@ -36,14 +36,10 @@ class EventHandler():
 
         return new_data
 
-    @staticmethod
-    def _rfc_3339_format(date_time: datetime):
-        return generate(date_time, microseconds=True)
-
     def _generate_dict_body(self, data: dict, event_id: int):
         new_data = dict()
 
-        data['date'] = EventHandler._rfc_3339_format(data['date'])
+        data['date'] = timestamp_to_rfc3339_utcoffset(data['date'])
 
         new_data["eventId"] = event_id
         new_data.update(data)
@@ -65,7 +61,7 @@ class EventHandler():
     def _generate_csv_body(self, data: dict, event_id: int):  # no headers
         new_data = list()
 
-        data['date'] = EventHandler._rfc_3339_format(data['date'])
+        data['date'] = timestamp_to_rfc3339_utcoffset(data['date'])
 
         new_data.append(event_id)
         new_data.append(EventHandler._join_list(
@@ -112,11 +108,9 @@ class EventHandler():
 
             for key, value in query.items():
                 if key == 'dateFrom':
-                    date_dict['gte'] = EventHandler._from_datetime_to_timestamp(
-                        parse(value))
+                    date_dict['gte'] = rfc3339_to_timestamp(value)
                 elif key == 'dateTo':
-                    date_dict['lte'] = EventHandler._from_datetime_to_timestamp(
-                        parse(value))
+                    date_dict['lte'] = rfc3339_to_timestamp(value)
                 else:
                     match_dict[key] = value
 
@@ -148,14 +142,6 @@ class EventHandler():
         return result
 
     @staticmethod
-    def _from_timestamp_to_datetime(timestamp: float):
-        return datetime.fromtimestamp(timestamp, tz=timezone.utc)
-
-    @staticmethod
-    def _from_datetime_to_timestamp(date_time: datetime):
-        return datetime.timestamp(date_time)
-
-    @staticmethod
     def options_handler(allow_header):
         response = make_response(request.headers)
         response.headers.add("Allow", allow_header)
@@ -169,12 +155,9 @@ class EventHandler():
         while retries <= 3:
             try:
                 body = EventHandler._order_data(data, schema_order)
-                body['date'] = EventHandler._from_datetime_to_timestamp(
-                    parse(body['date']))
+                body['date'] = rfc3339_to_timestamp(body['date'])
                 event_id = uuid1()
                 self.es.create(index=self.index, id=event_id, body=body)
-                body['date'] = EventHandler._from_timestamp_to_datetime(
-                    body['date'])
                 body = self._generate_dict_body(body, event_id.int)
                 response = make_response(
                     request.headers, HTTPStatus.CREATED, json.dumps(body))
@@ -194,8 +177,6 @@ class EventHandler():
 
         data = self._get_event_by_id(event_id)
         if data:
-            data['date'] = EventHandler._from_timestamp_to_datetime(
-                data['date'])
             if str(request.accept_mimetypes) == 'text/csv':
                 response = make_response(request.headers, HTTPStatus.OK, EventHandler._join_list(
                     [EventHandler._generate_csv_header(data), self._generate_csv_body(
@@ -217,10 +198,6 @@ class EventHandler():
 
         data = self._search_events(query)
         if data:
-            for event in data:
-                event['_source']['date'] = EventHandler._from_timestamp_to_datetime(
-                    event['_source']['date'])
-
             if str(request.accept_mimetypes) == 'text/csv':
                 # all are the same - in other words, i don't care
                 csv = [EventHandler._generate_csv_header(data[0]['_source'])]
