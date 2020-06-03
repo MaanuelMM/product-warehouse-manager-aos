@@ -32,9 +32,9 @@ services:
       - "traefik.http.routers.swagger-ui.rule=Host(`localhost`) || Host(`swagger.localhost`)"
       - "traefik.http.services.swagger-ui.loadbalancer.server.port=8080"
     environment:
-      - URLS=[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]
+      - URLS=[{url:"/app/logging-api/openapi.yaml",name:"Logging API"},{url:"/app/products-api/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/openapi.json",name:"Orders API"}]
     volumes:
-      - ./app:/usr/share/nginx/html/app:ro
+      - ./specifications:/usr/share/nginx/html/app:ro
     networks:
       - internal-proxy
 
@@ -64,18 +64,32 @@ services:
     labels:
       - "traefik.enable=false"
     volumes:
-      - ./app/invoicing-api/specification:/app:ro
+      - ./specifications/invoicing-api:/app:ro
     networks:
       - internal-proxy
 
   logging-api:
-    image: maanuelmm/prism:tini # custom image to avoid two bugs in two different versions
-    command: mock -d -h 0.0.0.0 "/app/openapi.yaml"
-    restart: on-failure # incredibly unreliable
+    image: maanuelmm/logging-api-aos:latest
+    restart: on-failure
     labels:
       - "traefik.enable=false"
+    environment:
+      - "DB_HOST=logging-db"
+    depends_on:
+      - logging-db
+    networks:
+      - internal-proxy
+
+  logging-db:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
+    container_name: logging-db # limited to one node to be reachable by the same hostname
+    restart: on-failure
+    labels:
+      - "traefik.enable=false"
+    environment:
+      - "discovery.type=single-node" # https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
     volumes:
-      - ./app/logging-api/specification:/app:ro
+      - logging-db:/usr/share/elasticsearch/data
     networks:
       - internal-proxy
 
@@ -86,7 +100,7 @@ services:
     labels:
       - "traefik.enable=false"
     volumes:
-      - ./app/orders-api/specification:/app:ro
+      - ./specifications/orders-api:/app:ro
     networks:
       - internal-proxy
 
@@ -97,7 +111,7 @@ services:
     labels:
       - "traefik.enable=false"
     volumes:
-      - ./app/products-api/specification:/app:ro
+      - ./specifications/products-api:/app:ro
     networks:
       - internal-proxy
 
@@ -106,3 +120,6 @@ networks:
     internal: false
   internal-proxy:
     internal: true
+
+volumes:
+  logging-db:

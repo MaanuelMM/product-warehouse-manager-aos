@@ -1,3 +1,3 @@
 FROM maanuelmm/prism:tini
 
-COPY app/products-api/specification/openapi.yaml /app/openapi.yaml
+COPY specifications/products-api/openapi.yaml /app/openapi.yaml

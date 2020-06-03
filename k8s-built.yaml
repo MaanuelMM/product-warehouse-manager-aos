@@ -9,6 +9,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: logging-api
       labels:
         app: logging-api
     spec:
@@ -17,7 +18,7 @@ spec:
           image: product-warehouse-manager-aos/logging-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -50,6 +51,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: products-api
       labels:
         app: products-api
     spec:
@@ -58,7 +60,7 @@ spec:
           image: product-warehouse-manager-aos/products-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -91,6 +93,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: orders-api
       labels:
         app: orders-api
     spec:
@@ -99,7 +102,7 @@ spec:
           image: product-warehouse-manager-aos/orders-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -132,6 +135,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: invoicing-api
       labels:
         app: invoicing-api
     spec:
@@ -140,7 +144,7 @@ spec:
           image: product-warehouse-manager-aos/invoicing-api:latest
           imagePullPolicy: Never
           args:
-            - mock 
+            - mock
             - -d
             - -h
             - 0.0.0.0
@@ -173,6 +177,7 @@ spec:
   replicas: 1
   template:
     metadata:
+      name: swagger-ui
       labels:
         app: swagger-ui
     spec:
@@ -182,7 +187,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: URLS
-              value: '[{url:"/app/logging-api/specification/openapi.yaml",name:"Logging API"},{url:"/app/products-api/specification/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/specification/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/specification/openapi.json",name:"Orders API"}]'
+              value: '[{url:"/app/logging-api/openapi.yaml",name:"Logging API"},{url:"/app/products-api/openapi.yaml",name:"Products API"},{url:"/app/invoicing-api/openapi.yaml",name:"Invoicing API"},{url:"/app/orders-api/openapi.json",name:"Orders API"}]'
           ports:
             - containerPort: 8080
 ---
